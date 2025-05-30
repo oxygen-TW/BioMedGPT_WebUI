@@ -8,7 +8,7 @@ import io
 import zipfile
 
 sys.path.append("/home/howardliu/work_space/BiomedGPT/BiomedGPTvisulize/BiomedGPT")
-from BiomedGPTvisulize.BiomedGPT.core import predict_caption
+from BiomedGPTvisulize.BiomedGPT.core2 import predict_caption
 
 global_results: list[dict] = []
 
@@ -266,6 +266,21 @@ app_ui = ui.page_fluid(
     ui.div("AI-assisted Radiological Imaging Diagnostic Platform @ NTU", {"class": "bottom-bar"})
 )
 
+def resize_base64_image(base64_str: str, size=(224, 224)) -> str:
+    # Step 1: Decode base64 to PIL image
+    image_data = base64.b64decode(base64_str)
+    image = Image.open(BytesIO(image_data)).convert("RGB")  # 保證為RGB格式
+
+    # Step 2: Resize to 224x224
+    resized_image = image.resize(size, Image.BICUBIC)
+
+    # Step 3: Encode back to base64
+    buffer = BytesIO()
+    resized_image.save(buffer, format="PNG")  # 可改成 JPEG 依需求
+    resized_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    return resized_base64
+
 def save_report(report_text: str, filename: str):
     """Save the report text to a file."""
     try:
@@ -340,7 +355,7 @@ def server(input, output, session):
         report_text, heatmap_img = predict_caption(datapath, prompt_)
 
         heatmap_b64 = image_to_base64(heatmap_img) 
-        orig_b64 = image_to_base64(datapath)
+        orig_b64 = resize_base64_image(image_to_base64(datapath), size=(224, 224))
 
         result = {
         "caption": report_text,
@@ -397,7 +412,7 @@ def server(input, output, session):
             report_text, heatmap_img = predict_caption(datapath, prompt)  # 你有 cache 就不怕慢
 
             heatmap_b64 = image_to_base64(heatmap_img)
-            orig_b64 = image_to_base64(datapath)
+            orig_b64 = resize_base64_image(image_to_base64(datapath), size=(224, 224))
 
             result = {
                 "caption": report_text,
